@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eclipse 活跃度批量查询</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; padding: 20px; }
+    textarea, button { width: 100%; padding: 10px; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+  </style>
+</head>
+<body>
+  <h2>Eclipse 活跃度批量查询</h2>
+  <textarea id="input" rows="10" placeholder="每行一个地址"></textarea>
+  <button onclick="startQuery()">开始查询</button>
+  <table id="result" style="display:none">
+    <thead>
+      <tr><th>#</th><th>地址</th><th>交易数</th><th>活跃周数</th><th>合约交互数</th></tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <script>
+    async function fetchAllTransactions(address) {
+      let txs = [];
+      let pageSize = 40;
+      let before = null;
+      let stop = false;
+      while (!stop) {
+        let url = `https://api.eclipsescan.xyz/v1/account/transaction?address=${address}&page_size=${pageSize}`;
+        if (before) url += `&before=${before}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!Array.isArray(data)) break;
+        const pageTxs = data.filter(tx => tx.signer.includes(address));
+        txs.push(...pageTxs);
+        if (pageTxs.length < pageSize) break;
+        before = pageTxs[pageTxs.length - 1].txHash;
+      }
+      return txs;
+    }
+
+    function getWeekKey(ts) {
+      const d = new Date(ts * 1000);
+      const year = d.getFullYear();
+      const onejan = new Date(d.getFullYear(), 0, 1);
+      const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+      return `${year}W${week}`;
+    }
+
+    async function startQuery() {
+      const addresses = document.getElementById('input').value.trim().split(/\n+/);
+      const tbody = document.getElementById('tbody');
+      const result = document.getElementById('result');
+      tbody.innerHTML = '';
+      result.style.display = 'table';
+
+      for (let i = 0; i < addresses.length; i++) {
+        const addr = addresses[i].trim();
+        if (!addr) continue;
+        const txs = await fetchAllTransactions(addr);
+        const contractSet = new Set();
+        const weekSet = new Set();
+        txs.forEach(tx => {
+          if (tx.blockTime) weekSet.add(getWeekKey(tx.blockTime));
+          if (tx.programIds) tx.programIds.forEach(id => contractSet.add(id));
+        });
+        const row = `<tr><td>${i + 1}</td><td>${addr}</td><td>${txs.length}</td><td>${weekSet.size}</td><td>${contractSet.size}</td></tr>`;
+        tbody.innerHTML += row;
+      }
+    }
+  </script>
+</body>
+</html>
