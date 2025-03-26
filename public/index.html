@@ -23,13 +23,14 @@
     <tbody id="tbody"></tbody>
   </table>
   <script>
+    const API_BASE = 'https://es-mwqqz2ann-7ccccc21xs-projects.vercel.app/api/txs';
+
     async function fetchAllTransactions(address) {
       let txs = [];
       let pageSize = 40;
       let before = null;
-      let stop = false;
-      while (!stop) {
-        let url = `https://api.eclipsescan.xyz/v1/account/transaction?address=${address}&page_size=${pageSize}`;
+      while (true) {
+        let url = `${API_BASE}?address=${address}&page_size=${pageSize}`;
         if (before) url += `&before=${before}`;
         const res = await fetch(url);
         const data = await res.json();
@@ -45,7 +46,7 @@
     function getWeekKey(ts) {
       const d = new Date(ts * 1000);
       const year = d.getFullYear();
-      const onejan = new Date(d.getFullYear(), 0, 1);
+      const onejan = new Date(year, 0, 1);
       const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
       return `${year}W${week}`;
     }
