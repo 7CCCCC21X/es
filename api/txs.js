@@ -2,26 +2,32 @@ export default async function handler(req, res) {
   const { address, before = '', page_size = 40 } = req.query;
 
   if (!address) {
-    return res.status(400).json({ error: 'Address required' });
+    return res.status(400).json({ error: 'Missing address' });
   }
 
   const url = `https://api.eclipsescan.xyz/v1/account/transaction?address=${address}&page_size=${page_size}${before ? `&before=${before}` : ''}`;
 
   try {
     const response = await fetch(url, {
+      method: 'GET',
       headers: {
         'accept': 'application/json, text/plain, */*',
-        'user-agent': 'Mozilla/5.0 (compatible; VercelWorker/1.0)',
-        'cookie': 'sol-aut=xxxxxx',  // 👈 替换为你从浏览器抓到的有效 Cookie
+        'origin': 'https://eclipsescan.xyz',
         'referer': 'https://eclipsescan.xyz/',
-        'origin': 'https://eclipsescan.xyz'
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+        // ✅ 替换这里为你抓包中的 sol-aut 值（仅 sol-aut 就够用）
+        'cookie': 'sol-aut=rWurgsLRnYPO-QZ=eg-JZphwn3GWOAdq'
       }
     });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch', status: response.status });
+    }
 
     const data = await response.json();
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json(data);
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch from Eclipse API', details: e.message });
+  } catch (err) {
+    res.status(500).json({ error: 'Server Error', details: err.message });
   }
 }
