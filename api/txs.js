@@ -10,7 +10,11 @@ export default async function handler(req, res) {
   try {
     const response = await fetch(url, {
       headers: {
-        'accept': 'application/json, text/plain, */*'
+        'accept': 'application/json, text/plain, */*',
+        'user-agent': 'Mozilla/5.0 (compatible; VercelWorker/1.0)',
+        'cookie': 'sol-aut=xxxxxx',  // 👈 替换为你从浏览器抓到的有效 Cookie
+        'referer': 'https://eclipsescan.xyz/',
+        'origin': 'https://eclipsescan.xyz'
       }
     });
 
